@@ -1,6 +1,6 @@
 # playbounce
 
-A brick-breaker game where the wall is somebody's name, and the name fights back.
+A brick-breaker game where the wall fights back.
 
 ## Before you start
 
