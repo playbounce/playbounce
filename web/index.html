@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>playbounce</title>
+<meta name="description" content="A brick-breaker game where the wall spells out your name, wakes up, and fights back.">
+<meta name="theme-color" content="#0D0D0D">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230D0D0D'/%3E%3Crect x='2' y='3' width='5' height='3' fill='%2339FF14'/%3E%3Crect x='9' y='3' width='5' height='3' fill='%2339FF14'/%3E%3Crect x='2' y='7' width='5' height='3' fill='%2339FF14'/%3E%3Crect x='11' y='11' width='3' height='2' fill='%23EFEFEF'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-screen="start">
+
+<div id="app">
+  <canvas id="stage"></canvas>
+  <div id="scanlines"></div>
+  <p id="taunt" class="taunt" role="status" aria-live="polite"><span id="taunt-text"></span></p>
+
+  <header id="hud">
+    <span>SCORE: <span class="value" id="hud-score">0000</span></span>
+    <span>LIVES: <span class="value" id="hud-lives">3</span></span>
+    <span>TIME: <span class="value" id="hud-time">00:00</span></span>
+    <span class="spacer"></span>
+    <button type="button" id="pause-button">&gt; PAUSE</button>
+  </header>
+
+  <section id="screen-start" class="screen">
+    <div class="panel">
+      <h1 class="title">playbounce</h1>
+      <p class="sneer" id="idle-taunt"></p>
+
+      <label class="field-label" for="name-input">&gt; ENTER NAME<span class="caret">_</span></label>
+      <input id="name-input" class="name-input" type="text" maxlength="8" placeholder="ISAAC"
+             autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"
+             aria-describedby="name-hint">
+      <p class="hint" id="name-hint">PLAY AS THEM, OR TYPE OVER IT AND PRESS ENTER. LETTERS ONLY, UP TO 8.</p>
+
+      <span class="field-label" id="mode-label">&gt; MODE</span>
+      <div class="options" id="mode-options" role="radiogroup" aria-labelledby="mode-label">
+        <button type="button" class="opt" role="radio" data-mode="torment" aria-checked="true">TORMENT</button>
+        <button type="button" class="opt" role="radio" data-mode="classic" aria-checked="false">CLASSIC</button>
+      </div>
+      <p class="hint" id="mode-hint">THE WALL WAKES UP AND FIGHTS BACK</p>
+
+      <span class="field-label" id="speed-label">&gt; SPEED</span>
+      <div class="options" id="speed-options" role="radiogroup" aria-labelledby="speed-label">
+        <button type="button" class="opt" role="radio" data-speed="slow" aria-checked="false">SLOW</button>
+        <button type="button" class="opt" role="radio" data-speed="normal" aria-checked="true">NORMAL</button>
+        <button type="button" class="opt" role="radio" data-speed="fast" aria-checked="false">FAST</button>
+      </div>
+
+      <span class="field-label" id="lives-label">&gt; LIVES</span>
+      <div class="options" id="lives-options" role="radiogroup" aria-labelledby="lives-label">
+        <button type="button" class="opt" role="radio" data-lives="3" aria-checked="true">3</button>
+        <button type="button" class="opt" role="radio" data-lives="5" aria-checked="false">5</button>
+        <button type="button" class="opt" role="radio" data-lives="unlimited" aria-checked="false">&#8734;</button>
+      </div>
+
+      <span class="field-label" id="limit-label">&gt; TIME LIMIT</span>
+      <div class="options" id="limit-options" role="radiogroup" aria-labelledby="limit-label">
+        <button type="button" class="opt" role="radio" data-limit="0" aria-checked="true">NONE</button>
+        <button type="button" class="opt" role="radio" data-limit="120" aria-checked="false">2:00</button>
+        <button type="button" class="opt" role="radio" data-limit="300" aria-checked="false">5:00</button>
+      </div>
+
+      <span class="field-label" id="sound-label">&gt; SOUND</span>
+      <div class="options" id="sound-options" role="radiogroup" aria-labelledby="sound-label">
+        <button type="button" class="opt" role="radio" data-sound="on" aria-checked="true">ON</button>
+        <button type="button" class="opt" role="radio" data-sound="off" aria-checked="false">OFF</button>
+      </div>
+
+      <button type="button" id="play-button" class="cmd">&gt; PLAY</button>
+      <p class="error" id="start-error" role="status"></p>
+      <p class="keys">UP/DOWN MOVE &middot; LEFT/RIGHT SELECT &middot; SPACE STARTS</p>
+    </div>
+  </section>
+
+  <section id="screen-paused" class="screen">
+    <div class="panel">
+      <h2 class="title">PAUSED</h2>
+      <p class="result-line">BRICKS DESTROYED: <span class="value" id="paused-score">0000</span></p>
+      <p class="result-line">TIME: <span class="value" id="paused-time">00:00</span></p>
+      <button type="button" id="resume-button" class="cmd">&gt; RESUME</button>
+      <button type="button" id="paused-change-button" class="cmd secondary">&gt; CHANGE NAME</button>
+      <p class="keys">SPACE RESUMES &middot; ESC FOR MENU</p>
+    </div>
+  </section>
+
+  <section id="screen-over" class="screen">
+    <div class="panel">
+      <h2 class="title" id="over-title">GAME OVER</h2>
+      <p class="sneer" id="over-taunt"></p>
+      <p class="result-line" id="over-detail"></p>
+      <p class="result-line">BRICKS DESTROYED: <span class="value" id="over-score">0000</span></p>
+      <p class="result-line">TIME: <span class="value" id="over-time">00:00</span></p>
+      <button type="button" id="again-button" class="cmd">&gt; PLAY AGAIN</button>
+      <button type="button" id="over-change-button" class="cmd secondary">&gt; CHANGE NAME</button>
+      <p class="keys">SPACE PLAYS AGAIN &middot; ESC FOR MENU</p>
+    </div>
+  </section>
+</div>
+
+<script src="trace.js"></script>
+<script src="names.js"></script>
+<script src="taunts.js"></script>
+<script src="audio.js"></script>
+<script src="bricks.js"></script>
+<script src="powerups.js"></script>
+<script src="beast.js"></script>
+<script src="game.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

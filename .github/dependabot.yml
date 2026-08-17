@@ -1,0 +1,8 @@
+version: 2
+updates:
+  # Action versions age silently, so let Dependabot watch them rather than
+  # pinning by hand and noticing three majors later.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

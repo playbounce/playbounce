@@ -1,0 +1,48 @@
+name: Release
+
+# Manual only until python/ exists. Restore the trigger below once a real
+# package is in place and one dispatch run has published successfully.
+# on:
+#   release:
+#     types: [published]
+on:
+  workflow_dispatch:
+
+# Any permissions block replaces the defaults rather than adding to them, so
+# contents: read is named alongside the OIDC scope or checkout fails.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: publish
+    runs-on: ubuntu-latest
+    environment: pypi
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      # A dispatch run before the package exists should say so plainly rather
+      # than failing somewhere deep in the build, or passing green having done
+      # nothing at all.
+      - name: Check the package exists
+        run: |
+          if [ ! -f python/pyproject.toml ]; then
+            echo "No python/pyproject.toml in this repo yet, so there is nothing to publish."
+            echo "Add the package under python/ before running this workflow."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Build
+        working-directory: python
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - uses: pypa/gh-action-pypi-publish@v1.14.2
+        with:
+          packages-dir: python/dist

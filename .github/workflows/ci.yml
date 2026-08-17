@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Declaring any permissions block drops every scope left out to none, so
+# contents: read is named explicitly even though it used to be a default.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '22'
+
+      - name: Check every script parses
+        run: |
+          for file in web/*.js tools/*.js; do
+            node --check "$file"
+          done
+
+      - name: Check the font and the cast
+        run: |
+          node -e "
+          const fs = require('fs');
+          const g = { PB: {} };
+          new Function('window', fs.readFileSync('web/bricks.js', 'utf8'))(g);
+          new Function('window', fs.readFileSync('web/names.js', 'utf8'))(g);
+
+          let bad = 0;
+          for (let i = 65; i <= 90; i += 1) {
+            const w = g.PB.bricks.buildWall(String.fromCharCode(i));
+            if (w.cols !== 5 || w.rows !== 7 || w.cells.length !== 35 || w.live === 0) bad += 1;
+          }
+          if (bad) throw new Error(bad + ' glyphs are not a filled 5x7 grid');
+
+          const cast = g.PB.names.cast;
+          if (cast.length === 0) throw new Error('the cast is empty');
+          const undrawable = cast.filter(n => !/^[A-Z]{1,8}\$/.test(n));
+          if (undrawable.length) throw new Error('undrawable names: ' + undrawable.join(', '));
+
+          const failed = cast.filter(n => {
+            const w = g.PB.bricks.buildWall(n);
+            return w.name !== n || w.cols !== n.length * 6 - 1 || w.live === 0;
+          });
+          if (failed.length) throw new Error('names that build a broken wall: ' + failed.join(', '));
+
+          console.log('26 glyphs valid, ' + cast.length + ' names build valid walls');
+          "
+
+      - name: Play a batch of games headlessly
+        run: node tools/simulate.js --runs 20 --skill 0.7

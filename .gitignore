@@ -1,0 +1,10 @@
+project/
+
+# AI assistant tool state: per-developer, never shared through the repo.
+.claude/
+.codex/
+.cursor/
+.grok/
+
+.DS_Store
+Thumbs.db
