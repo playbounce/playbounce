@@ -1,6 +1,6 @@
 # playbounce
 
-A brick-breaker game where the wall is somebody's name, and the name fights back.
+A brick-breaker game where the wall fights back.
 
 The landing screen arrives pre-loaded with a stranger: ROSIE, KWAME, PRIYA, whoever comes up this time. Play as them or type over it with a name of your own. Then the wall wakes up. It reddens as you damage it, hardens so bricks take more hits, screams and shakes the screen, drops projectiles, and charges beams that saw blocks off your paddle. Lose every block and you're finished, however many lives you had left.
 
