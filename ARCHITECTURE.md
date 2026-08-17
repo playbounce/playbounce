@@ -93,7 +93,11 @@ Rage is derived from the wall's live brick count (`(total - live) / total`), not
 
 `buildWall` keeps a `mask` alongside `cells` because a destroyed brick and empty space are both zero, so without it a healed wall has no way to know where bricks belong.
 
-The beast updates whether or not a ball is in play, so healing and hardening continue while a serve is held and waiting costs progress. Attack spawning is the exception: a held serve means the player just lost a ball and can't act yet, so no new projectiles or beams start and their timers hold in place rather than running down, which stops a queued volley firing the instant they serve. Only the clock and the ball physics wait for the serve. Healing arms the first time the wall reaches DYING and then runs whenever it goes 8 seconds without taking a hit. Every heal interval is multiplied by the same pace factor as the attacks, since anything on a clock becomes a difficulty lever tied to wall size otherwise. Measured over 200 harness runs per name, adding healing without that scaling dropped SAMANTHA from 38% to 5% while SUE only fell to 23%; scaled, the three names sit at 28%, 19%, and 21%.
+The beast updates whether or not a ball is in play, so healing continues while a serve is held and waiting costs progress. Attack spawning is the exception: a held serve means the player just lost a ball and can't act yet, so no new projectiles or beams start and their timers hold in place rather than running down, which stops a queued volley firing the instant they serve. Only the clock and the ball physics wait for the serve.
+
+Healing sheds armour as well as regrowing bricks. Regrown cells come back at one hit, so armour left on the survivors would leave a recovered wall harder than the one that stood there before. Every fourth heal drops `hardness` by one and calls `onSoften`, which reuses the same `softenWall` pass a combo triggers, and hardening is suppressed outright for as long as `healing` is true, its timer holding rather than running down. Without that suppression the two systems fight: measured over the recovery from 4 bricks to full, hardness fell 4 to 1 and then climbed back to 2 while the wall was still cooling, which reads as calming down and re-armouring at once.
+
+Healing arms the first time the wall reaches DYING and then runs whenever it goes 8 seconds without taking a hit. Every heal interval is multiplied by the same pace factor as the attacks, since anything on a clock becomes a difficulty lever tied to wall size otherwise. Measured over 200 harness runs per name, adding healing without that scaling dropped SAMANTHA from 38% to 5% while SUE only fell to 23%; scaled, the three names sit at 28%, 19%, and 21%.
 
 ## Difficulty pacing
 
@@ -107,7 +111,7 @@ Two canvases. The wall draws into an offscreen canvas and is blitted per frame; 
 
 ## The taunt banner
 
-The wall's height changes with name length, so a banner at a fixed percentage of the viewport lands on the bricks for short names and floats free for long ones. The engine reports the midpoint of the clear band between the wall's bottom edge and the paddle through an `onLayout` callback on every layout pass, and the banner is positioned from that measurement. Confirmed with `getBoundingClientRect()` across one-letter through eight-letter names: the tightest case still clears the wall by 145px and the paddle by 144px.
+The wall's height changes with name length, so a banner at a fixed percentage of the viewport falls on the bricks for short names and floats free for long ones. The engine reports the midpoint of the clear band between the wall's bottom edge and the paddle through an `onLayout` callback on every layout pass, and the banner is positioned from that measurement. Confirmed with `getBoundingClientRect()` across one-letter through eight-letter names: the tightest case still clears the wall by 145px and the paddle by 144px.
 
 ## Collision
 

@@ -74,6 +74,9 @@
       onBeamFire: function () { report('beamFire', {}); },
       onHarden: function (hardness) { hardenWall(hardness); },
       onHeal: function (first) { healBrick(first); },
+      /* No banner for this one: the heal line already says what's happening,
+         and the bricks losing their dark cores shows the rest. */
+      onSoften: function () { softenWall(); },
       onPaddleHit: function (blocks, source) { damagePaddle(blocks, source); }
     });
 
@@ -266,6 +269,24 @@
       if (handlers.onScore) handlers.onScore(state.destroyed);
       trace('heal', { live: wall.live, left: candidates.length - 1 });
       report('heal', { first: first, live: wall.live });
+    }
+
+    /*
+     * How many hits the live bricks still need, counted per depth: index 0 is
+     * the bricks one hit from gone, index 1 those needing two, and so on. It's
+     * the only view of the wall's armour from outside, which is what makes a
+     * hardening pass or a heal stripping a layer measurable rather than a
+     * thing you have to take on faith from the colours.
+     */
+    function wallArmour() {
+      var counts = [];
+      for (var i = 0; i < wall.cells.length; i += 1) {
+        var hits = wall.cells[i];
+        if (hits <= 0) continue;
+        while (counts.length < hits) counts.push(0);
+        counts[hits - 1] += 1;
+      }
+      return counts;
     }
 
     /* A combo takes a layer back off, which is what makes ricochets pay. */
@@ -588,13 +609,24 @@
           Math.round(paddle.height)
         );
       }
+      /*
+       * Plating turns the paddle blue, which a player with a colour vision
+       * deficiency may not register at all. The halo carries the same fact as
+       * brightness instead of hue, and its size tracks the hits left, so the
+       * paddle looks different rather than only bluer. One shadowed stroke
+       * does it: shadowing all ten blocks costs ten blurred draws a frame.
+       */
       if (paddle.plating > 0) {
+        ctx.save();
+        ctx.shadowColor = COLOUR_PLATING;
+        ctx.shadowBlur = Math.max(5, paddle.height * (paddle.plating >= PLATING_HITS ? 2.2 : 1.3));
         ctx.strokeStyle = COLOUR_PLATING;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 2;
         ctx.strokeRect(
           Math.round(paddle.x) - 2.5, Math.round(paddle.y) - 2.5,
           Math.round(paddle.width) + 5, Math.round(paddle.height) + 5
         );
+        ctx.restore();
       }
     }
 
@@ -852,6 +884,7 @@
           wall: wall ? {
             name: wall.name, live: wall.live, total: wall.total,
             cols: wall.cols, rows: wall.rows,
+            armour: wallArmour(),
             cell: layout.cell, originX: layout.originX, originY: layout.originY
           } : null
         };

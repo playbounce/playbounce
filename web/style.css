@@ -200,7 +200,6 @@ body[data-screen="over"] #hud { display: flex; }
 /* Keyboard focus has to be obvious, since arrows drive the whole menu. */
 .opt:focus-visible,
 .cmd:focus-visible,
-.name-input:focus-visible,
 #pause-button:focus-visible {
   outline: 2px solid var(--white);
   outline-offset: 2px;
@@ -232,8 +231,15 @@ body[data-screen="over"] #hud { display: flex; }
   padding: 0.5rem 0.75rem;
 }
 
+/*
+ * Plain :focus rather than :focus-visible, because the menu hands this field
+ * focus on arrival and :focus-visible would not match a programmatic focus,
+ * leaving the caret in a field with nothing marking it. The outline carries the
+ * cue on its own, so the green border is a second channel and not the only one.
+ */
 .name-input:focus {
-  outline: none;
+  outline: 2px solid var(--white);
+  outline-offset: 2px;
   border-color: var(--green);
 }
 

@@ -1,6 +1,45 @@
 # playbounce usage
 
-## Running it
+## Installing it
+
+You need Python 3.9 or newer for this route. Check with `python3 --version`; if that command isn't found, install Python from [python.org/downloads](https://www.python.org/downloads/) or your package manager (`apt install python3-pip`, `dnf install python3-pip`).
+
+```bash
+python3 -m pip install playbounce
+```
+
+```bash
+playbounce
+```
+
+```
+opened playbounce in your default browser
+  file:///usr/local/lib/python3.12/site-packages/playbounce/web/index.html
+```
+
+The game is inside the package, so nothing is fetched over the network when you play.
+
+| Command | What it does |
+|---|---|
+| `playbounce` | Open the bundled game in your default browser and exit |
+| `playbounce --serve` | Serve over localhost and print an address your phone can reach on the same network |
+| `playbounce --port N` | Serve on port N, or the next free port above it if N is busy. Implies `--serve` |
+| `playbounce --no-browser` | Print the address instead of opening a browser |
+| `playbounce --version` | Print the version |
+
+```bash
+playbounce --serve
+```
+
+```
+playbounce serving on http://127.0.0.1:8000
+  also reachable at http://192.168.1.24:8000
+press ctrl-c to stop
+```
+
+`python -m playbounce` runs the same command.
+
+## Running it from a checkout
 
 Open `web/index.html` in a browser, or use the launcher for your platform (`launch.command`, `launch.sh`, `launch.bat`). Both routes work with no server, since the page loads its scripts as classic scripts rather than modules.
 
@@ -74,7 +113,7 @@ Losing a ball repairs the paddle back to its full 10 blocks for the next serve. 
 
 Once the wall is awake it periodically armours most of the surviving bricks, adding a hit to each and drawing a dark core that grows with the extra hits needed. It leaves about a third untouched, so there's always a soft seam to aim at.
 
-Destroying 3 bricks in one flight (no paddle touch in between) takes a layer back off every brick on the wall. Ricochets through several bricks are the only lever you have against a hardening wall.
+Destroying 3 bricks in one flight (no paddle touch in between) takes a layer back off every brick on the wall. Ricochets are the only way to strip armour while you're still taking bricks down.
 
 ### Self-healing
 
@@ -84,9 +123,11 @@ While it recovers the wall gloats instead of threatening, drawing on its own set
 
 Healing walks the rage meter back down, because rage reads the wall's current state rather than your running total. As bricks return the wall cools through the stages, attacks thin out, the blinking stops, the screen stops shaking, and if you never hit it again it goes back to sleep entirely. From the brink, a full recovery to DORMANT takes around 90 seconds of being left alone.
 
+Recovery costs it armour. Bricks come back soft, and every 4 regrown the wall gives up one of its hardness layers across the rest of the wall. It runs no hardening passes at all while healing, so the armour only comes off during a recovery. A wall left alone from the brink all the way back to DORMANT is as soft as the one you started against, which means stalling hands you a bigger wall and an easier one at the same time.
+
 Any hit interrupts healing and restarts the 8-second clock, so the pressure is to finish the job rather than circle the ball safely. Your score falls as the wall recovers, since it counts the bricks currently down, not the ones you've broken over the course of the game.
 
-The wall doesn't wait for you to serve. Healing and hardening keep running while a ball sits on the paddle, so holding the serve buys nothing: sit on it long enough at the brink and the name grows back around you. Refusing to serve for 90 seconds takes a wall from 7 bricks left to 66 of 79, and the score down with it.
+The wall doesn't wait for you to serve. Healing keeps running while a ball rides the paddle, so holding the serve buys nothing: hold it long enough at the brink and the name grows back around you. Refusing to serve for 90 seconds takes a wall from 7 bricks left to 66 of 79, and the score down with it.
 
 It won't shoot at you while you're holding a serve, though. You've just lost a ball and can't play yet, so no new projectiles or beams start until you serve, and the attack timers hold rather than run down, so serving never releases a volley that queued up while you waited.
 
@@ -100,6 +141,8 @@ Roughly 8% of bricks conceal one. Nothing marks them, so you find out when the b
 | W | Two more paddle blocks, up to 14 |
 | B | An extra ball |
 | L | An extra life |
+
+A plated paddle turns blue and carries a glow around it, which shrinks once plating is down to its last hit. The glow is there because colour on its own tells a player with a colour vision deficiency nothing.
 
 Balls are independent. Losing your last one costs a life; while any ball is live, you're still in play.
 
@@ -170,9 +213,11 @@ playbounce.debug.table()    // console.table view
 playbounce.state()          // ball, paddle, wall, beast, and live attacks
 ```
 
-Record kinds include `ready`, `names`, `screen`, `setting`, `start`, `launch`, `paddle`, `brick`, `unstick`, `stage`, `scream`, `projectile`, `beam.charge`, `beam.fire`, `damage`, `plating`, `harden`, `combo`, `powerup.drop`, `powerup.catch`, `powerup.miss`, `life`, `timeout`, `end`, `pause`, `resume`, `hidden`, `resize`, and `stop`.
+The full set of record kinds, alphabetically: `audio`, `ball.add`, `ball.lost`, `beam.charge`, `beam.fire`, `beast.reset`, `brick`, `combo`, `damage`, `end`, `harden`, `heal`, `heal.soften`, `hidden`, `launch`, `life`, `mute`, `names`, `nolayout`, `paddle`, `pause`, `plating`, `powerup.apply`, `powerup.catch`, `powerup.drop`, `powerup.miss`, `projectile`, `ready`, `reject`, `repair`, `resize`, `resume`, `scream`, `screen`, `setting`, `stage`, `start`, `stop`, `timeout`, and `unstick`.
 
 The buffer holds the last 256 records. A long TORMENT run generates more than that, so treat counts from a finished game as a recent window rather than a total.
+
+`playbounce.state().wall.armour` counts the live bricks by how many hits they still need: `[12, 30, 5]` is 12 bricks one hit from gone, 30 needing two, and 5 needing three. Watch it across a hardening pass, a combo, or a recovery to see armour going on and coming off.
 
 ## Browser support
 

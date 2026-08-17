@@ -4,6 +4,11 @@
 
 First release.
 
+### Install
+
+- `pip install playbounce` gives you a `playbounce` command that opens the bundled game in your default browser and exits. `--serve` puts it behind a localhost server and prints an address reachable from a phone on the same network, taking the next free port when the one asked for is busy. `--port N` and `--no-browser` cover the rest.
+- The package carries the game inside it, copied from `web/` at build time, so an install needs no network access to play.
+
 ### The game
 
 - Brick-breaker rendered on a canvas, where the wall is a name drawn from a 5x7 bitmap font covering A-Z. Every "on" pixel is one destructible brick.
@@ -18,7 +23,8 @@ First release.
 - The paddle is 10 discrete blocks. Losing all of them ends the run outright, whatever the lives counter says, so there are two separate ways to die. Losing a ball repairs the paddle to full for the next serve, keeping any extra blocks won from a powerup.
 - Hardening that armours most surviving bricks over time, leaving about a third soft so there's always a seam to aim at. Destroying 3 bricks in one flight takes a layer back off the whole wall.
 - Self-healing. Once the wall has reached DYING, leaving it alone for 8 seconds starts regrowing bricks where the name used to be. Healing lowers the rage, which cools the stage, thins the attacks, and stops the blinking and shaking, so a wall left alone goes back to sleep in about 90 seconds. Any hit interrupts it.
-- The wall keeps healing and hardening while a serve is held, so holding the ball buys no rest. It starts no new projectiles or beams during that window, and their timers hold rather than run down, so a player who just lost a ball isn't shot at while regrouping and serving releases no stored volley.
+- Healing costs the wall its armour. Regrown bricks come back soft, every fourth one strips a hardness layer from the rest of the wall, and no hardening passes run while a recovery is under way. A wall that recovers fully is as soft as it was at the start, so stalling trades a smaller wall for a harder one.
+- The wall keeps healing while a serve is held, so holding the ball buys no rest. It starts no new projectiles or beams during that window, and their timers hold rather than run down, so a player who just lost a ball isn't shot at while regrouping and serving releases no stored volley.
 - At DYING the wall blinks like a failing light and the screen carries a tremor that never settles, on top of harder impacts from screams and beams.
 - Screen shake on screams and stage changes, damped for readers who ask for reduced motion, which also switches the blinking off.
 - Hidden powerups in roughly 8% of bricks: paddle plating, extra width, an extra ball, an extra life.

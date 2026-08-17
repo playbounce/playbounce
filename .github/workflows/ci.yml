@@ -59,3 +59,59 @@ jobs:
 
       - name: Play a batch of games headlessly
         run: node tools/simulate.js --runs 20 --skill 0.7
+
+  python:
+    name: python
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.13']
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install the package and its test extra
+        run: python -m pip install --upgrade pip './python[test]'
+
+      - name: Run the tests
+        working-directory: python
+        run: python -m pytest -q
+
+      # The game is copied into the package at build time, so a wheel that
+      # builds without error can still ship without a playable game in it.
+      - name: Check the built wheel carries the game
+        run: |
+          python -m pip install --upgrade build
+          python -m build --wheel --outdir dist python
+          python - <<'PY'
+          import pathlib, zipfile
+          wheel = next(pathlib.Path('dist').glob('*.whl'))
+          names = set(zipfile.ZipFile(wheel).namelist())
+          required = {'playbounce/py.typed', 'playbounce/web/index.html'}
+          required |= {
+              f'playbounce/web/{f}' for f in (
+                  'trace.js', 'bricks.js', 'names.js', 'taunts.js', 'audio.js',
+                  'powerups.js', 'beast.js', 'game.js', 'ui.js', 'style.css',
+              )
+          }
+          missing = sorted(required - names)
+          if missing:
+              raise SystemExit(f'{wheel.name} is missing: {missing}')
+          print(f'{wheel.name} carries {len(required)} required files')
+          PY
+
+      - name: Check the version agrees across surfaces
+        run: |
+          python - <<'PY'
+          import pathlib, re, sys
+          init = pathlib.Path('python/src/playbounce/__init__.py').read_text()
+          toml = pathlib.Path('python/pyproject.toml').read_text()
+          code = re.search(r'__version__ = "([^"]+)"', init).group(1)
+          meta = re.search(r'^version = "([^"]+)"', toml, re.M).group(1)
+          if code != meta:
+              sys.exit(f'__init__.py says {code}, pyproject.toml says {meta}')
+          print(f'version {code} agrees across both surfaces')
+          PY

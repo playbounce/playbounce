@@ -46,6 +46,11 @@
   var HEAL_DELAY = 8;           /* seconds without taking a hit before it starts */
   var HEAL_INTERVAL = 1.4;      /* seconds per brick regrown, before pacing */
 
+  /* Regrown bricks come back soft, so armour that stayed on the survivors would
+     leave a healed wall tougher than the one that was there before. Shedding a
+     layer every few heals walks the whole wall back down as it calms. */
+  var HEAL_SOFTEN_EVERY = 4;    /* bricks regrown per hardness layer given up */
+
   function randomBetween(low, high) {
     return low + Math.random() * (high - low);
   }
@@ -70,7 +75,8 @@
       armed: false,       /* has it ever reached the dying stage */
       healing: false,
       sinceDamage: 0,
-      healIn: HEAL_INTERVAL
+      healIn: HEAL_INTERVAL,
+      healCount: 0        /* bricks regrown since the last layer of armour came off */
     };
 
     var projectiles = [];
@@ -97,6 +103,7 @@
       state.healing = false;
       state.sinceDamage = 0;
       state.healIn = HEAL_INTERVAL * state.pace;
+      state.healCount = 0;
       projectiles.length = 0;
       beams.length = 0;
       scheduleAll();
@@ -194,6 +201,19 @@
             var first = !state.healing;
             state.healing = true;
             if (handlers.onHeal) handlers.onHeal(first);
+
+            state.healCount += 1;
+            if (state.healCount >= HEAL_SOFTEN_EVERY) {
+              state.healCount = 0;
+              if (state.hardness > 1) {
+                state.hardness -= 1;
+                /* Put the hardening pass back to full delay as well, or the
+                   next one fires straight into the layer just given up. */
+                state.hardenIn = HARDEN_EVERY * state.pace;
+                trace('heal.soften', { hardness: state.hardness });
+                if (handlers.onSoften) handlers.onSoften(state.hardness);
+              }
+            }
           }
         }
       }
@@ -237,8 +257,12 @@
         }
       }
 
-      /* Hardening only bites once the wall is awake. */
-      if (state.stage >= 2) {
+      /* Hardening only bites once the wall is awake, and stops entirely while
+         it's knitting itself back together: a wall that's calming down and
+         re-armouring at the same time reads as two different moods at once.
+         The timer holds rather than running down, so landing a hit doesn't
+         release a hardening pass that queued up during the lull. */
+      if (state.stage >= 2 && !state.healing) {
         state.hardenIn -= delta;
         if (state.hardenIn <= 0) {
           state.hardenIn = HARDEN_EVERY * state.pace;
@@ -324,6 +348,7 @@
         state.sinceDamage = 0;
         state.healing = false;
         state.healIn = HEAL_INTERVAL * state.pace;
+        state.healCount = 0;
       },
 
       isHealing: function () { return state.healing; },

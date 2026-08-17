@@ -4,7 +4,7 @@
  *
  * Keys: Space is the action key (start, launch, pause, resume, play again),
  * Escape backs out a level, arrows navigate the menu and move the paddle, and
- * Enter only commits text that's being typed.
+ * Enter starts a game from the menu, including out of the name field.
  */
 (function (global) {
   'use strict';
@@ -351,14 +351,32 @@
     el.startError.textContent = '';
   }
 
+  /*
+   * Arriving at the menu puts the cursor in the name with the whole stranger
+   * selected, so one keystroke replaces them and Enter plays. Touch screens are
+   * left alone: focusing a field there throws the on-screen keyboard over the
+   * menu before the player has decided anything.
+   */
+  var touchPrimary = global.matchMedia
+    ? global.matchMedia('(pointer: coarse)').matches
+    : false;
+
+  function focusName() {
+    if (touchPrimary) { blurActive(); return; }
+    el.name.focus();
+    /* Select here rather than leaning on the focus handler: a page opened in a
+       background tab fires no focus event, and the player would come back to a
+       focused field with the caret parked at the end. */
+    el.name.select();
+  }
+
   function backToStart() {
     game.stop();
     hideTaunt();
     rotateName();
     el.idleTaunt.textContent = PB.taunts.pick('idle');
     setScreen('start');
-    /* Focus stays off the name field so Space starts the next game straight away. */
-    blurActive();
+    focusName();
   }
 
   /* Keeps Space from re-triggering whichever button was clicked last. */
@@ -380,16 +398,12 @@
     else pauseGame();
   }
 
-  /* Enter exists only to commit typed text, so it hands focus back afterwards. */
-  function commitName() {
-    var cleaned = PB.bricks.cleanName(el.name.value);
-    if (!cleaned) {
-      el.startError.textContent = '> NAME NEEDED. TYPE ONE ABOVE.';
-      return;
-    }
-    el.startError.textContent = '';
-    el.name.blur();
-  }
+  /*
+   * The name field is focused on arrival, so Enter there means "this name, go"
+   * rather than "commit this text": typing a name and pressing Enter is what
+   * people try first. startGame reads the field itself and reports an empty
+   * one, so Enter needs no separate commit step.
+   */
 
   doc.addEventListener('keydown', function (event) {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -397,8 +411,10 @@
     var typing = doc.activeElement === el.name;
     var key = event.key;
 
+    /* Enter starts a game from the menu, including straight out of the name
+       field. Elsewhere it's left alone so buttons activate normally. */
     if (key === 'Enter') {
-      if (typing) { event.preventDefault(); commitName(); }
+      if (where === 'start') { event.preventDefault(); startGame(); }
       return;
     }
 
@@ -411,8 +427,10 @@
       return;
     }
 
+    /* Space starts from the name field too. A name is letters only, so the
+       character would be stripped on input anyway, and the field now holds
+       focus on arrival, which would otherwise make SPACE STARTS a lie. */
     if (key === ' ' || key === 'Spacebar') {
-      if (typing) return; /* a space belongs in the field being typed into */
       event.preventDefault();
       if (where === 'start') startGame();
       else if (where === 'playing') spaceInPlay();
@@ -481,6 +499,7 @@
   el.name.addEventListener('click', function () { el.name.select(); });
 
   rotateName();
+  focusName();
   el.idleTaunt.textContent = PB.taunts.pick('idle');
   game.resize();
   trace('ready', { width: global.innerWidth, height: global.innerHeight });

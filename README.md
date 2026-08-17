@@ -10,6 +10,22 @@ One static page: no install, no login, no build step, no backend, and no audio f
 
 Double-click `launch.command` (macOS), `launch.sh` (Linux), or `launch.bat` (Windows). Each one opens the game in your default browser. Or open `web/index.html` directly. There's nothing to install first.
 
+### Or install it
+
+You need Python 3.9 or newer for this route. Check with `python3 --version`; if that command isn't found, install Python from [python.org/downloads](https://www.python.org/downloads/) or your package manager (`apt install python3-pip`, `dnf install python3-pip`).
+
+```
+python3 -m pip install playbounce
+playbounce
+```
+
+```
+opened playbounce in your default browser
+  file:///usr/local/lib/python3.12/site-packages/playbounce/web/index.html
+```
+
+`playbounce --serve` puts it behind a localhost server instead and prints an address your phone can reach on the same network. `--port N` picks the port, `--no-browser` prints the address without opening anything.
+
 ## Share it
 
 Upload the contents of `web/` to any static host (GitHub Pages, Netlify, Cloudflare Pages, an S3 bucket, a folder on a web server) and send the URL. There's no server-side component, so a plain file host is enough.
@@ -42,7 +58,7 @@ The game pauses itself when the tab goes to the background, so an interruption d
 
 Each letter comes from a 5x7 bitmap font. Every "on" pixel in a glyph becomes one destructible brick, so an 8-character name needs 47 columns and 7 rows. Cells stay square at every name length, which means a short name gets big chunky bricks and a long one gets small ones, and both keep the font's proportions.
 
-The wall's attack pace scales with how many bricks it has. Without that, a long name means a longer fight and roughly twice the punishment, and the clear rate for SAMANTHA sat at 5% against 39% for ISAAC. Scaled, all name lengths land within a few points of each other.
+The wall's attack pace scales with how many bricks it has. Without that, a long name means a longer fight and roughly twice the punishment, and the clear rate for SAMANTHA was 5% against 39% for ISAAC. Scaled, all name lengths stay within a few points of each other.
 
 Everything else, including the ball, the paddle, the beams, and the text, is sized from the canvas at run time, so the same code runs at 375px and at 1280px.
 
@@ -63,8 +79,11 @@ Everything else, including the ball, the paddle, the beams, and the text, is siz
 ```
 playbounce/
 ├── web/          the game, eleven files, no dependencies
+├── python/       the pip package, a launcher for the game in web/
 └── tools/        headless balance harness
 ```
+
+`python/` carries no copy of the game in the repository. The build copies `web/` into the package, so there's one editable game rather than two that can drift apart.
 
 ## License
 

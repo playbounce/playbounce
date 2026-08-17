@@ -8,3 +8,14 @@ project/
 
 .DS_Store
 Thumbs.db
+
+# Python build output. The game is vendored into the package at build time from
+# web/, so the copy under src/ is generated and never committed.
+python/src/playbounce/web/
+python/build/
+python/dist/
+python/*.egg-info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
