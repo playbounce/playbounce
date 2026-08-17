@@ -115,7 +115,7 @@
 
   /* ---- game events ------------------------------------------------------ */
 
-  /* Every engine event lands here, which keeps sound and voice out of the engine. */
+  /* Every engine event arrives here, which keeps sound and voice out of the engine. */
   var EVENTS = {
     brick: function (detail) { audio.play('brick', detail.rage); },
     hard: function () { audio.play('hard'); },
@@ -146,8 +146,12 @@
       showTaunt('damage');
     },
     powerup: function (detail) {
-      audio.play('powerup');
+      audio.play(detail.label === 'BALL BLAST' ? 'blast' : 'powerup');
       banner('+ ' + detail.label);
+    },
+    chill: function () {
+      audio.play('chill');
+      showTaunt('chill');
     },
     combo: function () {
       audio.play('powerup');

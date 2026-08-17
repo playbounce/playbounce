@@ -22,9 +22,11 @@ function noop() {}
 /* Enough of a 2D context for the drawing calls to land somewhere harmless. */
 function stubContext() {
   return {
-    setTransform: noop, translate: noop, save: noop, restore: noop,
+    setTransform: noop, translate: noop, rotate: noop, scale: noop,
+    save: noop, restore: noop,
     fillRect: noop, clearRect: noop, strokeRect: noop, drawImage: noop,
-    beginPath: noop, arc: noop, fill: noop, stroke: noop, fillText: noop,
+    beginPath: noop, closePath: noop, moveTo: noop, lineTo: noop,
+    arc: noop, fill: noop, stroke: noop, fillText: noop,
     fillStyle: '', strokeStyle: '', lineWidth: 1, font: '', textAlign: '', textBaseline: ''
   };
 }
@@ -84,15 +86,25 @@ function playOnce(options) {
   var canvas = stubCanvas(width, height);
 
   var ended = null;
-  var tally = { damage: 0, blocksLost: 0, powerup: 0, combo: 0, harden: 0, beamFire: 0, projectile: 0 };
+  var tally = {
+    damage: 0, blocksLost: 0, powerup: 0, combo: 0, harden: 0,
+    beamFire: 0, projectile: 0, ice: 0, chill: 0, blast: 0
+  };
   var game = win.PB.createGame(canvas, {
     onEvent: function (kind, detail) {
       if (kind === 'damage') { tally.damage += 1; tally.blocksLost += detail.blocks || 0; }
-      else if (kind === 'powerup') tally.powerup += 1;
+      else if (kind === 'powerup') {
+        tally.powerup += 1;
+        if (detail.label === 'BALL BLAST') tally.blast += 1;
+      }
       else if (kind === 'combo') tally.combo += 1;
       else if (kind === 'harden') tally.harden += 1;
       else if (kind === 'beamFire') tally.beamFire += 1;
-      else if (kind === 'projectile') tally.projectile += 1;
+      else if (kind === 'chill') tally.chill += 1;
+      else if (kind === 'projectile') {
+        tally.projectile += 1;
+        if (detail.ice) tally.ice += 1;
+      }
     },
     onEnd: function (result, destroyed, elapsed) {
       ended = { result: result, destroyed: destroyed, elapsed: elapsed };
@@ -191,7 +203,10 @@ function main() {
   var outcomes = {};
   var durations = [];
   var clearedShare = [];
-  var totals = { damage: 0, blocksLost: 0, powerup: 0, combo: 0, harden: 0, beamFire: 0, projectile: 0 };
+  var totals = {
+    damage: 0, blocksLost: 0, powerup: 0, combo: 0, harden: 0,
+    beamFire: 0, projectile: 0, ice: 0, chill: 0, blast: 0
+  };
 
   for (var i = 0; i < args.runs; i += 1) {
     var run = playOnce(args);
@@ -228,6 +243,9 @@ function main() {
   console.log('             powerups caught ' + (totals.powerup / args.runs).toFixed(1) +
               '   combos ' + (totals.combo / args.runs).toFixed(1) +
               '   hardenings ' + (totals.harden / args.runs).toFixed(1));
+  console.log('             ice fired ' + (totals.ice / args.runs).toFixed(1) +
+              '   freezes taken ' + (totals.chill / args.runs).toFixed(1) +
+              '   ball blasts caught ' + (totals.blast / args.runs).toFixed(2));
 }
 
 if (require.main === module) main();

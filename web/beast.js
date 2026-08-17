@@ -24,6 +24,14 @@
   var CHARGE_TIME_DYING = 0.7;
   var BEAM_FLASH = 0.28;        /* how long the fired beam stays on screen */
   var PROJECTILE_SPEED = 0.42;  /* share of canvas height per second */
+
+  /* One projectile in eight comes down as ice. It costs no paddle block, so it
+     reads as harmless right up until it arrives and the paddle stops answering
+     properly. Slower than the rest, which is the tell: it's easy to dodge if
+     you notice it coming, and easy to walk into if you're watching the ball. */
+  var ICE_SHARE = 0.125;
+  var ICE_SPEED = 0.24;
+  var ICE_COLOUR = '#7FE6FF';
   var HARDEN_EVERY = 14;        /* seconds between hardening passes once awake */
   var REFERENCE_BRICKS = 80;    /* a five-letter name, the pace everything is tuned against */
   var PACE_MIN = 0.72;
@@ -171,14 +179,17 @@
       }
       if (choices.length === 0) return;
       var pick = choices[Math.floor(Math.random() * choices.length)];
+      var ice = Math.random() < ICE_SHARE;
       projectiles.push({
         x: env.layout.originX + (pick.col + 0.5) * env.layout.cell,
         y: env.layout.originY + (pick.row + 1) * env.layout.cell,
-        size: Math.max(4, env.layout.cell * 0.5),
-        speed: env.view.height * PROJECTILE_SPEED
+        size: Math.max(4, env.layout.cell * (ice ? 0.62 : 0.5)),
+        speed: env.view.height * (ice ? ICE_SPEED : PROJECTILE_SPEED),
+        ice: ice,
+        spin: 0
       });
-      trace('projectile', { col: pick.col, row: pick.row });
-      if (handlers.onProjectile) handlers.onProjectile();
+      trace('projectile', { col: pick.col, row: pick.row, ice: ice });
+      if (handlers.onProjectile) handlers.onProjectile(ice);
     }
 
     function hitsPaddle(box, paddle) {
@@ -278,11 +289,20 @@
       for (i = projectiles.length - 1; i >= 0; i -= 1) {
         var p = projectiles[i];
         p.y += p.speed * delta;
+        p.spin += delta;
         var half = p.size / 2;
         if (hitsPaddle({ left: p.x - half, right: p.x + half, top: p.y - half, bottom: p.y + half }, env.paddle)) {
           projectiles.splice(i, 1);
-          addShake(0.35);
-          if (handlers.onPaddleHit) handlers.onPaddleHit(1, 'projectile');
+          if (p.ice) {
+            /* Ice takes no block. It takes the paddle's speed, which the player
+               only discovers on the next thing they try to reach. */
+            addShake(0.25);
+            trace('ice', {});
+            if (handlers.onChill) handlers.onChill();
+          } else {
+            addShake(0.35);
+            if (handlers.onPaddleHit) handlers.onPaddleHit(1, 'projectile');
+          }
         } else if (p.y - half > env.view.height) {
           projectiles.splice(i, 1);
         }
@@ -330,11 +350,32 @@
         }
       }
 
-      ctx.fillStyle = stage().brick;
       for (i = 0; i < projectiles.length; i += 1) {
         var p = projectiles[i];
         var half = p.size / 2;
-        ctx.fillRect(Math.round(p.x - half), Math.round(p.y - half), Math.round(p.size), Math.round(p.size));
+
+        if (!p.ice) {
+          ctx.fillStyle = stage().brick;
+          ctx.fillRect(Math.round(p.x - half), Math.round(p.y - half), Math.round(p.size), Math.round(p.size));
+          continue;
+        }
+
+        /*
+         * Ice is a slow turning diamond with a halo, so it separates from the
+         * ordinary shot by shape and motion as well as by colour. Anyone who
+         * can't tell the two hues apart still has two other tells.
+         */
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.spin * 0.9);
+        ctx.shadowColor = ICE_COLOUR;
+        ctx.shadowBlur = p.size * 1.6;
+        ctx.fillStyle = ICE_COLOUR;
+        ctx.fillRect(-half, -half, p.size, p.size);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#0D0D0D';
+        ctx.fillRect(-half * 0.34, -half * 0.34, p.size * 0.34, p.size * 0.34);
+        ctx.restore();
       }
     }
 

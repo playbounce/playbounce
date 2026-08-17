@@ -102,6 +102,19 @@
         tone('sine', 450, 780, 0.16, 0.1, 0.06);
       },
       life: function () { tone('sawtooth', 420, 80, 0.5, 0.3); },
+      /* Falling and thin, the sound of something seizing up. */
+      chill: function () {
+        tone('sine', 700, 150, 0.55, 0.22);
+        tone('sine', 1040, 220, 0.4, 0.1, 0.05);
+      },
+      /* Five notes up, one per ball the blast lets loose. */
+      blast: function () {
+        tone('square', 520, 520, 0.07, 0.18, 0);
+        tone('square', 660, 660, 0.07, 0.18, 0.06);
+        tone('square', 784, 784, 0.07, 0.18, 0.12);
+        tone('square', 988, 988, 0.07, 0.18, 0.18);
+        tone('square', 1175, 1175, 0.2, 0.2, 0.24);
+      },
       dead: function () {
         tone('sawtooth', 220, 40, 0.9, 0.34);
         hiss(0.7, 0.3, 1200, 100);

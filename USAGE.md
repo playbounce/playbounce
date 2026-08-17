@@ -74,20 +74,18 @@ Space is the action key everywhere, and Escape is the back key everywhere.
 |---|---|---|
 | Move between menu rows | Up and down arrows | Tap |
 | Change a setting | Left and right arrows | Tap |
-| Start a game | Space | Tap `> PLAY` |
+| Start a game | Space or Enter | Tap `> PLAY` |
 | Launch the ball | Space | Tap |
 | Pause | Space, while a ball is in play | The pause button |
 | Resume | Space | Tap `> RESUME` |
 | Play again | Space on the end screen | Tap `> PLAY AGAIN` |
 | Move the paddle | Left and right arrows | Drag, or tap a position |
 | Back out a level | Escape | Tap `> CHANGE NAME` |
-| Commit a name you typed | Enter | The keyboard's done key |
+Settings apply the moment you choose them, so nothing needs saving.
 
-Settings apply the moment you choose them, so nothing needs saving and Enter has no job outside the name field.
+Escape steps back one level at a time: from a game it pauses, from the pause or end screen it returns to the menu, and from the name field it leaves the field.
 
-Escape steps back one level at a time: from a game it pauses, from the pause or end screen it returns to the menu, and from the name field it leaves the field without committing.
-
-While the name field has focus it keeps the keys it needs: Space types a space, left and right move the caret, and Enter commits the name and hands focus back so Space starts the game.
+The name field already has the cursor when the menu appears, with the whole name selected, so typing replaces it and Enter plays. Both Space and Enter start the game from inside the field, since a name is letters only and a space would be stripped anyway. Left and right still move the caret, and up and down leave the field for the settings below. On a touchscreen the field is left alone, so the on-screen keyboard stays down until you tap it.
 
 ## TORMENT
 
@@ -104,6 +102,8 @@ The wall's rage rises with the damage it takes, so it gets angrier the closer yo
 ### Attacks
 
 Projectiles fall from bricks that are still alive and take one block off your paddle. Beams charge in a bright column for 1.2 seconds (0.7 at DYING) before firing, and take their full width in blocks: 2 at BOILING, 3 or 4 at DYING. They aim where your paddle was when the charge started, so standing still loses.
+
+One projectile in eight comes down as ice: it glows, turns as it falls, and moves slower than the rest. It takes no paddle block. It takes your speed, dropping the paddle to three quarters for five seconds, and a bar under the paddle drains as the freeze lifts. Plating won't stop it, because there's no block for plating to absorb.
 
 Your paddle starts at 10 blocks. Losing all of them ends the run outright, whatever your lives say. Lives cover dropped balls only, so there are two separate ways to die.
 
@@ -142,6 +142,8 @@ Roughly 8% of bricks conceal one. Nothing marks them, so you find out when the b
 | B | An extra ball |
 | L | An extra life |
 
+One perk comes from the sky instead. Once the wall is down to its last tenth, an amber `*` starts falling every so often while a ball is in play. Catch it and five balls fan out from the paddle at once. A single brick left on a wide wall is an aiming problem more than a skill one, and a fan covers angles a lone ball would need several rallies to try.
+
 A plated paddle turns blue and carries a glow around it, which shrinks once plating is down to its last hit. The glow is there because colour on its own tells a player with a colour vision deficiency nothing.
 
 Balls are independent. Losing your last one costs a life; while any ball is live, you're still in play.
@@ -161,7 +163,9 @@ With no time limit the readout counts up. With a limit it counts down, and reach
 | `GAME OVER` | Lives exhausted |
 | `TIME UP` | Time limit reached |
 
-All four report the name, bricks destroyed, elapsed time, and a closing remark from the wall.
+All four report the name, score, elapsed time, and a closing remark from the wall.
+
+Score counts the bricks currently down, not the ones you've broken over the game, so a healing wall takes your score back with it.
 
 ## Sound
 
@@ -213,7 +217,7 @@ playbounce.debug.table()    // console.table view
 playbounce.state()          // ball, paddle, wall, beast, and live attacks
 ```
 
-The full set of record kinds, alphabetically: `audio`, `ball.add`, `ball.lost`, `beam.charge`, `beam.fire`, `beast.reset`, `brick`, `combo`, `damage`, `end`, `harden`, `heal`, `heal.soften`, `hidden`, `launch`, `life`, `mute`, `names`, `nolayout`, `paddle`, `pause`, `plating`, `powerup.apply`, `powerup.catch`, `powerup.drop`, `powerup.miss`, `projectile`, `ready`, `reject`, `repair`, `resize`, `resume`, `scream`, `screen`, `setting`, `stage`, `start`, `stop`, `timeout`, and `unstick`.
+The full set of record kinds, alphabetically: `audio`, `ball.add`, `ball.blast`, `ball.lost`, `beam.charge`, `beam.fire`, `beast.reset`, `brick`, `chill`, `combo`, `damage`, `end`, `harden`, `heal`, `heal.soften`, `hidden`, `ice`, `launch`, `life`, `mute`, `names`, `nolayout`, `paddle`, `pause`, `plating`, `powerup.apply`, `powerup.catch`, `powerup.drop`, `powerup.miss`, `projectile`, `ready`, `reject`, `repair`, `resize`, `resume`, `scream`, `screen`, `setting`, `stage`, `start`, `stop`, `timeout`, and `unstick`.
 
 The buffer holds the last 256 records. A long TORMENT run generates more than that, so treat counts from a finished game as a recent window rather than a total.
 

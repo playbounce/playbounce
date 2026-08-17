@@ -36,6 +36,13 @@ XIMENA    ELENA     MARISOL   RAFAEL    VALERIA   MABEL     FLORA     HAZEL
 IRIS      JUNO      NELL      OTTO      PIPPA     SILAS     THEO      WILLA
 ARLO      BRUNO     CLEO      DAISY     EDITH     FINN      HUGO      MAYA
 NORA      OSCAR     RENA      SOLA      TESSA     VIOLA     ZAINAB    IDRIS
+ADAORA    CHIOMA    NNAMDI    ZUBERI    BARAKA    NEEMA     THEMBA    LERATO
+NALEDI    KAGISO    SIPHO     AYO       ASHA      JUMA      SIFA      OKON
+LAYAN     ZAID      HUDA      SALMA     TAMER     NAILA     RAMI      SORAYA
+ADITI     ROHIT     SUNIL     KAVYA     DEVAN     ISHA      NILA      PRANAV
+HARUTO    AOI       RIKU      EMIKO     JISOO     NARI      CHENG     XIULAN
+ISABELA   SANTOS    PILAR     NIEVES    ALEJO     LUZ       AGNES     CALLUM
+FIONA     GRETA     INGRID    KLARA     MIRA      NIAMH     ODILE     EAMON
 `;
 
   var PB = global.PB = global.PB || {};
@@ -55,14 +62,33 @@ NORA      OSCAR     RENA      SOLA      TESSA     VIOLA     ZAINAB    IDRIS
 
   if (PB.trace) PB.trace('names', { loaded: cast.length, dropped: rejected });
 
-  var last = -1;
+  /*
+   * Names come out at random, but a plain roll repeats sooner than it feels it
+   * should: with a cast this size the same face turns up within a handful of
+   * visits often enough to read as a short list. Remembering the last stretch
+   * of picks and rolling again keeps the cast feeling as big as it is.
+   *
+   * The window is capped at a third of the cast so a short hand-edited list
+   * can never run out of names to offer.
+   */
+  var RECENT_MAX = 24;
+  var recent = [];
 
-  /* Never hand back the same name twice running. */
   function random() {
     if (cast.length === 0) return 'ROSIE';
-    var index = Math.floor(Math.random() * cast.length);
-    if (cast.length > 1 && index === last) index = (index + 1) % cast.length;
-    last = index;
+    if (cast.length === 1) return cast[0];
+
+    var window = Math.min(RECENT_MAX, Math.max(1, Math.floor(cast.length / 3)));
+    var index = 0;
+    /* Bounded rather than a while-loop: a full window still leaves plenty of
+       room, and a fixed ceiling can't hang if the cast is unusually small. */
+    for (var attempt = 0; attempt < 40; attempt += 1) {
+      index = Math.floor(Math.random() * cast.length);
+      if (recent.indexOf(index) === -1) break;
+    }
+
+    recent.push(index);
+    while (recent.length > window) recent.shift();
     return cast[index];
   }
 

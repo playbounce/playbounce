@@ -42,5 +42,15 @@
   var PB = global.PB = global.PB || {};
   PB.trace = trace;
 
-  global.playbounce = { debug: debug };
+  /*
+   * The same game ships from three places: a checkout, a local server, and an
+   * installed pip package. They look identical on screen, so a player checking
+   * whether a change is live has no way to tell which copy they opened. This is
+   * the answer to that, readable as playbounce.version and recorded in the
+   * ready line of every session. Kept in step with python/pyproject.toml by CI.
+   */
+  var VERSION = '1.1.0';
+
+  global.playbounce = { debug: debug, version: VERSION };
+  PB.version = VERSION;
 })(window);

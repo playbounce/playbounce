@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "playbounce"
-version = "1.0.0"
+version = "1.1.0"
 description = "A brick-breaker game where the wall fights back."
 readme = "README.md"
 requires-python = ">=3.9"

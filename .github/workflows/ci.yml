@@ -103,15 +103,27 @@ jobs:
           print(f'{wheel.name} carries {len(required)} required files')
           PY
 
+      # The web game carries its own version so a player can tell which copy
+      # they opened, which only helps while it agrees with the package.
       - name: Check the version agrees across surfaces
         run: |
           python - <<'PY'
           import pathlib, re, sys
-          init = pathlib.Path('python/src/playbounce/__init__.py').read_text()
-          toml = pathlib.Path('python/pyproject.toml').read_text()
-          code = re.search(r'__version__ = "([^"]+)"', init).group(1)
-          meta = re.search(r'^version = "([^"]+)"', toml, re.M).group(1)
-          if code != meta:
-              sys.exit(f'__init__.py says {code}, pyproject.toml says {meta}')
-          print(f'version {code} agrees across both surfaces')
+          found = {
+              'python/pyproject.toml':
+                  re.search(r'^version = "([^"]+)"', pathlib.Path('python/pyproject.toml').read_text(), re.M),
+              'python/src/playbounce/__init__.py':
+                  re.search(r'__version__ = "([^"]+)"', pathlib.Path('python/src/playbounce/__init__.py').read_text()),
+              'web/trace.js':
+                  re.search(r"var VERSION = '([^']+)'", pathlib.Path('web/trace.js').read_text()),
+              'CHANGELOG.md':
+                  re.search(r'^## (\d+\.\d+\.\d+)', pathlib.Path('CHANGELOG.md').read_text(), re.M),
+          }
+          missing = [where for where, m in found.items() if not m]
+          if missing:
+              sys.exit('no version found in: ' + ', '.join(missing))
+          versions = {where: m.group(1) for where, m in found.items()}
+          if len(set(versions.values())) != 1:
+              sys.exit('versions disagree: ' + ', '.join(f'{w}={v}' for w, v in versions.items()))
+          print(f'version {next(iter(versions.values()))} agrees across {len(versions)} surfaces')
           PY

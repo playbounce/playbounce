@@ -35,7 +35,7 @@
   var PLATING_HITS = 2;
 
   var BALL_RADIUS = 0.013;
-  var KEY_SPEED = 1.1;             /* paddle travel per second, as a share of canvas width */
+  var KEY_SPEED = 1.1;             /* paddle movement per second, as a share of canvas width */
   var COMBO_STEP = 3;              /* bricks per flight that soften the wall */
   var HARDEN_SHARE = 0.65;         /* share of live bricks a hardening pass armours */
 
@@ -44,6 +44,22 @@
   var COLOUR_BRICK_EDGE = '#12500A';
   var COLOUR_PADDLE = '#EFEFEF';
   var COLOUR_PLATING = '#A7DAFF';
+  var COLOUR_CHILL = '#7FE6FF';
+
+  /* An ice hit costs no blocks, only speed, and only for a few seconds. Long
+     enough to lose a rally, short enough that it reads as a setback. */
+  var CHILL_TIME = 5;
+  var CHILL_FACTOR = 0.75;
+
+  /*
+   * A mouse or a finger normally places the paddle outright, so there's no
+   * "three quarters of instant" to apply: chilling pointer input can only be a
+   * speed cap, and a cap set at the key speed is a far harsher penalty than the
+   * quarter the keys lose. This multiplier lifts the chilled pointer to a rate
+   * that lags a flick without stranding the paddle mid-screen.
+   */
+  var CHILL_CHASE = 3;
+  var BLAST_BALLS = 5;             /* balls fanned out by a caught ball blast */
   var COLOUR_BALL = '#EFEFEF';
 
   function clamp(value, low, high) {
@@ -59,7 +75,7 @@
     var wall = null;
     var view = { width: 0, height: 0, ratio: 1 };
     var layout = { cell: 0, originX: 0, originY: 0 };
-    var paddle = { x: 0, y: 0, blocks: START_BLOCKS, blockWidth: 0, width: 0, height: 0, plating: 0 };
+    var paddle = { x: 0, y: 0, blocks: START_BLOCKS, blockWidth: 0, width: 0, height: 0, plating: 0, chill: 0, aim: null };
     var balls = [];
     var ballRadius = 0;
     var ballSpeed = 0;
@@ -69,7 +85,7 @@
     var beast = PB.createBeast({
       onStage: function (key, rising) { report('stage', { stage: key, rising: rising }); },
       onScream: function () { report('scream', {}); },
-      onProjectile: function () { report('projectile', {}); },
+      onProjectile: function (ice) { report('projectile', { ice: !!ice }); },
       onBeamCharge: function (time) { report('beamCharge', { time: time }); },
       onBeamFire: function () { report('beamFire', {}); },
       onHarden: function (hardness) { hardenWall(hardness); },
@@ -77,7 +93,8 @@
       /* No banner for this one: the heal line already says what's happening,
          and the bricks losing their dark cores shows the rest. */
       onSoften: function () { softenWall(); },
-      onPaddleHit: function (blocks, source) { damagePaddle(blocks, source); }
+      onPaddleHit: function (blocks, source) { damagePaddle(blocks, source); },
+      onChill: function () { chillPaddle(); }
     });
 
     var powerups = PB.createPowerups({
@@ -232,8 +249,8 @@
 
     /*
      * Hardening armours most of the surviving bricks but deliberately not all
-     * of them, so the wall stays mottled and there's always a soft seam worth
-     * aiming for rather than a uniform slab to grind through.
+     * of them, so the wall stays mottled and there's always a soft seam to aim
+     * at rather than a uniform slab to grind through.
      */
     function hardenWall(hardness) {
       if (!wall) return;
@@ -333,6 +350,31 @@
       trace('ball.add', { balls: balls.length });
     }
 
+    /*
+     * Five balls fanned across the full deflection range from the paddle. The
+     * spread is the point: one brick left on a wide wall is an aiming problem,
+     * and a fan covers angles a single ball would need several rallies to try.
+     */
+    function burstBalls() {
+      var origin = balls.length > 0 ? balls[0] : heldBallPosition();
+      var spread = MAX_DEFLECT * 1.6;
+      for (var i = 0; i < BLAST_BALLS; i += 1) {
+        var share = BLAST_BALLS === 1 ? 0.5 : i / (BLAST_BALLS - 1);
+        balls.push(newBall(origin.x, origin.y, (share - 0.5) * spread));
+      }
+      held = false;
+      trace('ball.blast', { added: BLAST_BALLS, balls: balls.length });
+    }
+
+    /* Ice costs no blocks, only speed, and only until the timer runs out. */
+    function chillPaddle() {
+      if (state.phase !== 'running') return;
+      paddle.chill = CHILL_TIME;
+      paddle.aim = null;
+      trace('chill', { seconds: CHILL_TIME });
+      report('chill', {});
+    }
+
     function applyPowerup(kind) {
       if (kind.key === 'plate') {
         paddle.plating = PLATING_HITS;
@@ -347,6 +389,8 @@
       } else if (kind.key === 'ball') {
         if (held) launchBall();
         else addBall();
+      } else if (kind.key === 'blast') {
+        burstBalls();
       }
       trace('powerup.apply', { kind: kind.key, blocks: paddle.blocks, plating: paddle.plating });
       report('powerup', { label: kind.label });
@@ -503,6 +547,9 @@
         paddle.blocks = START_BLOCKS;
         resizePaddle();
       }
+      /* The repair thaws it too, so a life isn't spent serving a frozen paddle. */
+      paddle.chill = 0;
+      paddle.aim = null;
       restBallOnPaddle();
     }
 
@@ -531,8 +578,27 @@
     }
 
     function movePaddle(delta) {
-      if (!state.keyLeft && !state.keyRight) return;
-      var travel = view.width * KEY_SPEED * delta;
+      if (paddle.chill > 0) paddle.chill = Math.max(0, paddle.chill - delta);
+      var travel = view.width * KEY_SPEED * (paddle.chill > 0 ? CHILL_FACTOR : 1) * delta;
+
+      /*
+       * A chilled paddle can't jump to the pointer, so aimAt leaves the wanted
+       * position here and the paddle walks to it at the same reduced rate the
+       * keys get. Uncooled there is no target to chase, because aimAt places
+       * the paddle itself and clears this.
+       */
+      if (paddle.aim !== null) {
+        var want = clamp(paddle.aim - paddle.width / 2, 0, Math.max(0, view.width - paddle.width));
+        var reach = travel * CHILL_CHASE;
+        var distance = want - paddle.x;
+        if (Math.abs(distance) <= reach) {
+          paddle.x = want;
+          paddle.aim = null;
+        } else {
+          paddle.x += distance > 0 ? reach : -reach;
+        }
+      }
+
       if (state.keyLeft) paddle.x -= travel;
       if (state.keyRight) paddle.x += travel;
       paddle.x = clamp(paddle.x, 0, Math.max(0, view.width - paddle.width));
@@ -565,6 +631,7 @@
         beast.update(delta, environment());
         if (state.phase !== 'running') return;
         powerups.update(delta, environment());
+        powerups.maybeBlast(delta, environment());
 
         var colours = beast.colours();
         if (colours.brick !== painted.brick) repaintWall();
@@ -600,7 +667,11 @@
     function drawPaddle() {
       if (paddle.blocks <= 0) return;
       var gutter = paddle.blockWidth > 9 ? 1 : 0;
-      ctx.fillStyle = paddle.plating > 0 ? COLOUR_PLATING : COLOUR_PADDLE;
+
+      /* Frozen beats plated for colour, since the freeze is the thing you need
+         to know about right now and it wears off on its own. */
+      if (paddle.chill > 0) ctx.fillStyle = COLOUR_CHILL;
+      else ctx.fillStyle = paddle.plating > 0 ? COLOUR_PLATING : COLOUR_PADDLE;
       for (var i = 0; i < paddle.blocks; i += 1) {
         ctx.fillRect(
           Math.round(paddle.x + i * paddle.blockWidth),
@@ -627,6 +698,19 @@
           Math.round(paddle.width) + 5, Math.round(paddle.height) + 5
         );
         ctx.restore();
+      }
+
+      /*
+       * A bar under the paddle that drains as the freeze lifts. The colour
+       * shift alone would tell a colourblind player nothing, and unlike the
+       * plating halo this one also answers the question being asked at the
+       * time, which is how much longer the paddle stays slow.
+       */
+      if (paddle.chill > 0) {
+        var left = paddle.chill / CHILL_TIME;
+        var barY = Math.round(paddle.y + paddle.height + 4);
+        ctx.fillStyle = COLOUR_CHILL;
+        ctx.fillRect(Math.round(paddle.x), barY, Math.round(paddle.width * left), 3);
       }
     }
 
@@ -706,8 +790,14 @@
       return clamp(event.clientX - box.left, 0, view.width);
     }
 
-    /* Centre the paddle on a canvas x position. */
+    /* Centre the paddle on a canvas x position, or ask movePaddle to walk it
+       there when the paddle is chilled and can't be placed outright. */
     function aimAt(x) {
+      if (paddle.chill > 0) {
+        paddle.aim = x;
+        return;
+      }
+      paddle.aim = null;
       paddle.x = clamp(x - paddle.width / 2, 0, Math.max(0, view.width - paddle.width));
     }
 
@@ -760,6 +850,8 @@
         held = true;
         paddle.blocks = START_BLOCKS;
         paddle.plating = 0;
+        paddle.chill = 0;
+        paddle.aim = null;
         beast.reset(wall.total);
         powerups.reset();
 
@@ -873,7 +965,8 @@
           ball: { radius: ballRadius, speed: ballSpeed },
           paddle: {
             x: paddle.x, y: paddle.y, width: paddle.width,
-            blocks: paddle.blocks, blockWidth: paddle.blockWidth, plating: paddle.plating
+            blocks: paddle.blocks, blockWidth: paddle.blockWidth, plating: paddle.plating,
+            chill: Math.round(paddle.chill * 100) / 100
           },
           beast: {
             rage: beast.rage(), stage: beast.stageKey(), hardness: beast.hardness()

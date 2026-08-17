@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.0 — 2026-08-17
+
+### Added
+
+- The ball blast, the one perk that falls from the sky rather than hiding in a brick. It arrives only once the wall is down to its last tenth and a ball is already in play, and catching it fans five balls out of the paddle at once, which is what a single surviving brick on a wide wall needs.
+- Ice blocks. One projectile in eight glows, turns, and falls slower than the rest. It costs no paddle block and instead drops the paddle to three quarters speed for five seconds, with a bar under the paddle draining as the freeze lifts. Plating can't absorb it, because there's no block taken.
+- `playbounce.version`, also recorded in each session's `ready` line. The same game ships from a checkout, a local server, and an installed package, and they look identical on screen, so this answers which copy is open.
+
+### Changed
+
+- The cast grows from 160 names to 216, and picks now avoid the last two dozen rather than only the previous one. Measured over 3000 picks, the closest a name comes back went from 2 apart to 25.
+- 238 taunt lines, up from 132. The sets seen most often grew most: damage from 5 lines to 17, powerup from 5 to 13, the end screens from 3 and 4 to 9 and 11. Each set now avoids its last ten lines rather than its last four, capped at half the set so a short one can't starve.
+- The end and pause screens label the figure `SCORE` rather than `BRICKS DESTROYED`, since it counts bricks currently down and a healing wall takes it back.
+- The balance harness reports ice fired, freezes taken, and ball blasts caught per game.
+- Clear rates measured across 400 harness runs per name at equal skill: ABE 42%, ISAAC 38%, SAMANTHA 41%, against 31%, 26% and 28% before the ball blast and the ice block.
+
 ## 1.0.0 — 2026-08-16
 
 First release.
