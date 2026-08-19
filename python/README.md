@@ -46,7 +46,7 @@ press ctrl-c to stop
 | Option | What it does |
 |---|---|
 | `--serve` | Serve over localhost rather than opening the file directly |
-| `--port N` | Serve on port N, or the next free port above it. Implies `--serve` |
+| `--port N` | Serve on port N, or the next free port above it if N is busy or blocked by browsers. Implies `--serve` |
 | `--no-browser` | Print the address instead of opening a browser |
 | `--version` | Print the version |
 

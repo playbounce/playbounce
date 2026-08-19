@@ -2,9 +2,10 @@
  * Screens, settings, keyboard handling, and the wiring between the DOM, the
  * game engine, the wall's voice, and the sound.
  *
- * Keys: Space is the action key (start, launch, pause, resume, play again),
- * Escape backs out a level, arrows navigate the menu and move the paddle, and
- * Enter starts a game from the menu, including out of the name field.
+ * Keys: Space is the action key (start, launch, pause, resume, and picking an
+ * option on the pause and end screens), Escape backs out a level, arrows walk
+ * the menu rows and the button columns and move the paddle in play, and Enter
+ * starts a game from the menu and picks the highlighted option elsewhere.
  */
 (function (global) {
   'use strict';
@@ -43,6 +44,7 @@
     overDetail: doc.getElementById('over-detail'),
     overScore: doc.getElementById('over-score'),
     overTime: doc.getElementById('over-time'),
+    newGame: doc.getElementById('new-game-button'),
     again: doc.getElementById('again-button'),
     overChange: doc.getElementById('over-change-button')
   };
@@ -196,7 +198,7 @@
       el.overScore.textContent = pad(destroyed, 4);
       el.overTime.textContent = clock(elapsed);
       setScreen('over');
-      el.again.focus();
+      el.newGame.focus();
     }
   });
 
@@ -340,13 +342,61 @@
     blurActive();
   }
 
+  /*
+   * The end screen offers the same game again, a fresh stranger on the same
+   * settings, or the menu. Rematch and new game both start straight away, so
+   * neither costs a trip through the menu to answer "again?".
+   */
   function playAgain() {
     if (screen() !== 'over') return;
+    startFrom(settings.name);
+  }
+
+  function newGame() {
+    if (screen() !== 'over') return;
+    startFrom(PB.bricks.cleanName(PB.names.random()) || settings.name);
+  }
+
+  function startFrom(name) {
     unlockAudio();
+    settings.name = name;
+    el.name.value = name;
     setScreen('playing');
     blurActive();
     game.start(settings);
     if (settings.mode === 'torment') showTaunt('start');
+  }
+
+  /*
+   * Up and down walk the buttons on the pause and end screens. Without this the
+   * arrows do nothing on the two screens where the player has just been using
+   * them, and the only way through is a mouse or Tab.
+   */
+  function columnFor(where) {
+    if (where === 'over') return [el.newGame, el.again, el.overChange];
+    if (where === 'paused') return [el.resume, el.pausedChange];
+    return null;
+  }
+
+  function moveInColumn(where, direction) {
+    var column = columnFor(where);
+    if (!column) return;
+    var index = column.indexOf(doc.activeElement);
+    if (index < 0) index = direction > 0 ? -1 : 0;
+    column[(index + direction + column.length) % column.length].focus();
+  }
+
+  /*
+   * A focused button answers Space and Enter by itself, so stepping in here as
+   * well would run the action twice. Only act when focus has drifted off the
+   * column, in which case the top option is the one the player means.
+   */
+  function chooseInColumn(where, event) {
+    var column = columnFor(where);
+    if (!column || column.indexOf(doc.activeElement) !== -1) return;
+    event.preventDefault();
+    column[0].focus();
+    column[0].click();
   }
 
   /* A different stranger each visit, already typed in so Play works instantly. */
@@ -390,6 +440,7 @@
 
   el.pause.addEventListener('click', function () { pauseGame(); });
   el.resume.addEventListener('click', resumeGame);
+  el.newGame.addEventListener('click', newGame);
   el.again.addEventListener('click', playAgain);
   el.pausedChange.addEventListener('click', backToStart);
   el.overChange.addEventListener('click', backToStart);
@@ -416,9 +467,10 @@
     var key = event.key;
 
     /* Enter starts a game from the menu, including straight out of the name
-       field. Elsewhere it's left alone so buttons activate normally. */
+       field, and picks the highlighted option on the pause and end screens. */
     if (key === 'Enter') {
       if (where === 'start') { event.preventDefault(); startGame(); }
+      else chooseInColumn(where, event);
       return;
     }
 
@@ -435,11 +487,18 @@
        character would be stripped on input anyway, and the field now holds
        focus on arrival, which would otherwise make SPACE STARTS a lie. */
     if (key === ' ' || key === 'Spacebar') {
+      if (where === 'paused' || where === 'over') { chooseInColumn(where, event); return; }
       event.preventDefault();
       if (where === 'start') startGame();
       else if (where === 'playing') spaceInPlay();
-      else if (where === 'paused') resumeGame();
-      else if (where === 'over') playAgain();
+      return;
+    }
+
+    if (where === 'paused' || where === 'over') {
+      if (key === 'ArrowDown' || key === 'ArrowUp') {
+        event.preventDefault();
+        moveInColumn(where, key === 'ArrowDown' ? 1 : -1);
+      }
       return;
     }
 

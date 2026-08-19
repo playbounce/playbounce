@@ -119,12 +119,14 @@ body {
   pointer-events: none;
 }
 
-/* A band behind the words so they stay readable over anything. */
+/* A band behind the words so they stay readable over anything. A uniform
+   hairline on all four sides rather than a one-side accent stripe, matching
+   the borders used everywhere else in the panel. */
 .taunt span {
   display: inline-block;
   padding: 6px 12px;
   background: rgba(13, 13, 13, 0.88);
-  border-left: 2px solid var(--amber);
+  border: 1px solid var(--amber);
 }
 
 .taunt.show { display: block; }

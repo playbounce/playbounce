@@ -23,7 +23,7 @@ The game is inside the package, so nothing is fetched over the network when you 
 |---|---|
 | `playbounce` | Open the bundled game in your default browser and exit |
 | `playbounce --serve` | Serve over localhost and print an address your phone can reach on the same network |
-| `playbounce --port N` | Serve on port N, or the next free port above it if N is busy. Implies `--serve` |
+| `playbounce --port N` | Serve on port N, or the next free port above it if N is busy or blocked by browsers. Implies `--serve` |
 | `playbounce --no-browser` | Print the address instead of opening a browser |
 | `playbounce --version` | Print the version |
 
@@ -78,9 +78,11 @@ Space is the action key everywhere, and Escape is the back key everywhere.
 | Launch the ball | Space | Tap |
 | Pause | Space, while a ball is in play | The pause button |
 | Resume | Space | Tap `> RESUME` |
-| Play again | Space on the end screen | Tap `> PLAY AGAIN` |
+| Move between options on the pause and end screens | Up and down arrows | Tap |
+| Pick the highlighted option | Space or Enter | Tap it |
 | Move the paddle | Left and right arrows | Drag, or tap a position |
-| Back out a level | Escape | Tap `> CHANGE NAME` |
+| Back out a level | Escape | Tap `> BACK TO MENU` |
+
 Settings apply the moment you choose them, so nothing needs saving.
 
 Escape steps back one level at a time: from a game it pauses, from the pause or end screen it returns to the menu, and from the name field it leaves the field.
@@ -163,7 +165,13 @@ With no time limit the readout counts up. With a limit it counts down, and reach
 | `GAME OVER` | Lives exhausted |
 | `TIME UP` | Time limit reached |
 
-All four report the name, score, elapsed time, and a closing remark from the wall.
+All four report the name, score, elapsed time, and a closing remark from the wall, and offer three ways on:
+
+| Option | What it does |
+|---|---|
+| NEW GAME | Starts at once against a fresh stranger from the cast, keeping your settings |
+| REMATCH | Starts at once against the same name, on the same settings |
+| BACK TO MENU | Returns to the landing screen, the same as pressing Escape |
 
 Score counts the bricks currently down, not the ones you've broken over the game, so a healing wall takes your score back with it.
 

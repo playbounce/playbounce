@@ -21,6 +21,21 @@ from . import __version__
 DEFAULT_PORT = 8000
 PORT_ATTEMPTS = 20
 
+# Chromium (and so Chrome, Brave, Edge, Opera) refuses to connect to these
+# ports outright: the request is rejected client-side as ERR_UNSAFE_PORT
+# before it ever reaches this server. A port picker that lands on one binds
+# fine and looks healthy here while the browser reports the page as dead.
+# Source: Chromium's kRestrictedPorts, chromium.googlesource.com/chromium/src/+/main/net/base/port_util.cc,
+# checked 2026-08-19.
+RESTRICTED_PORTS = frozenset({
+    1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77,
+    79, 87, 95, 101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123,
+    135, 137, 139, 143, 161, 179, 389, 427, 465, 512, 513, 514, 515, 526,
+    530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993,
+    995, 1719, 1720, 1723, 2049, 3659, 4045, 5060, 5061, 6000, 6566, 6665,
+    6666, 6667, 6668, 6669, 6697, 10080,
+})
+
 # TEST-NET-1 (RFC 5737). Connecting a UDP socket to it sends no packets; it
 # only asks the kernel which local address would be used to reach the outside.
 ROUTE_PROBE_ADDRESS = ("192.0.2.1", 9)
@@ -98,25 +113,42 @@ def port_is_free(port: int) -> bool:
 
 
 def find_port(start: int = DEFAULT_PORT, attempts: int = PORT_ATTEMPTS) -> int:
-    """Return the first free port at or above ``start``.
+    """Return the first free, browser-reachable port at or above ``start``.
+
+    A port a browser refuses to open (see ``RESTRICTED_PORTS``) is skipped for
+    free, without counting against ``attempts``: binding to one succeeds and
+    looks like a working server right up until the browser rejects the address
+    with ERR_UNSAFE_PORT, which is a worse failure than scanning a few ports
+    further to avoid it.
 
     Args:
         start: The first port to try.
-        attempts: How many consecutive ports to test.
+        attempts: How many non-restricted candidates to test.
 
     Returns:
-        A port number nothing is currently listening on.
+        A port nothing is listening on and no mainstream browser blocks.
 
     Raises:
-        NoFreePort: If every candidate was occupied.
+        NoFreePort: If every candidate tried was occupied.
     """
-    for offset in range(attempts):
+    tried = 0
+    offset = 0
+    last_candidate = start
+    # The scan window is generous relative to attempts because a restricted
+    # port costs a skip, not a try, and the longest run of consecutive
+    # restricted ports is 5 (6665-6669) — this bounds the loop regardless.
+    while tried < attempts and offset < attempts + 64:
         candidate = start + offset
+        offset += 1
+        if candidate in RESTRICTED_PORTS:
+            continue
+        last_candidate = candidate
+        tried += 1
         if port_is_free(candidate):
             return candidate
     raise NoFreePort(
-        f"ports {start} to {start + attempts - 1} are all in use. "
-        f"Pick another with 'playbounce --serve --port {start + attempts}'."
+        f"ports {start} to {last_candidate} are all in use or blocked by "
+        f"browsers. Pick another with 'playbounce --serve --port {last_candidate + 1}'."
     )
 
 

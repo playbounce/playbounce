@@ -10,11 +10,18 @@
 
 ### Changed
 
+- The end screen offers three routes instead of two: NEW GAME starts at once against a fresh stranger on the same settings, REMATCH replays the same name, and BACK TO MENU returns to the landing screen. Up and down walk the options on the pause and end screens, which the arrows previously did nothing on.
+- The ball is magenta. It was near-white, which is the colour projectiles take at DYING, so incoming fire and the ball you were tracking looked alike in the stage where telling them apart counts for most.
 - The cast grows from 160 names to 216, and picks now avoid the last two dozen rather than only the previous one. Measured over 3000 picks, the closest a name comes back went from 2 apart to 25.
 - 238 taunt lines, up from 132. The sets seen most often grew most: damage from 5 lines to 17, powerup from 5 to 13, the end screens from 3 and 4 to 9 and 11. Each set now avoids its last ten lines rather than its last four, capped at half the set so a short one can't starve.
 - The end and pause screens label the figure `SCORE` rather than `BRICKS DESTROYED`, since it counts bricks currently down and a healing wall takes it back.
 - The balance harness reports ice fired, freezes taken, and ball blasts caught per game.
 - Clear rates measured across 400 harness runs per name at equal skill: ABE 42%, ISAAC 38%, SAMANTHA 41%, against 31%, 26% and 28% before the ball blast and the ice block.
+
+### Fixed
+
+- `playbounce --serve --port N` skips any port a mainstream browser refuses to open (Chromium's `ERR_UNSAFE_PORT` list), rather than binding one and looking dead in the browser once opened.
+- The taunt banner's border, which was an accent stripe down the left edge rather than the uniform hairline every other panel in the game uses.
 
 ## 1.0.0 — 2026-08-16
 

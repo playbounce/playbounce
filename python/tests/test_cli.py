@@ -103,6 +103,30 @@ def test_find_port_skips_an_occupied_port():
         assert cli.find_port(busy, attempts=20) != busy
 
 
+def test_find_port_never_returns_a_browser_blocked_port():
+    """Starting inside a run of blocked ports still lands on a usable one.
+
+    6665-6669 and 6697 are consecutive IRC ports Chromium refuses to open
+    (ERR_UNSAFE_PORT). A server that bound one would look healthy here and
+    dead in the browser, which is worse than skipping past it.
+    """
+    port = cli.find_port(6665, attempts=5)
+    assert port not in cli.RESTRICTED_PORTS
+
+
+def test_find_port_starting_exactly_on_a_blocked_port():
+    """The starting port itself being blocked is not a special case."""
+    assert 6000 in cli.RESTRICTED_PORTS  # the classic X11 port
+    port = cli.find_port(6000, attempts=5)
+    assert port != 6000
+    assert port not in cli.RESTRICTED_PORTS
+
+
+def test_find_port_default_start_is_not_itself_blocked():
+    """The out-of-the-box port never needs the skip logic to be usable."""
+    assert cli.DEFAULT_PORT not in cli.RESTRICTED_PORTS
+
+
 def test_port_is_free_reports_a_bound_port_as_busy():
     """The probe agrees with a socket that is listening."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as taken:

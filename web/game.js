@@ -60,7 +60,14 @@
    */
   var CHILL_CHASE = 3;
   var BLAST_BALLS = 5;             /* balls fanned out by a caught ball blast */
-  var COLOUR_BALL = '#EFEFEF';
+
+  /*
+   * Magenta because nothing else on screen is: the wall runs green through
+   * amber to near-white, and projectiles take the wall's colour, so a white
+   * ball was indistinguishable from incoming fire at DYING. It also stays clear
+   * of the plating blue, the ice cyan, and the amber of the ball blast.
+   */
+  var COLOUR_BALL = '#FF3DE0';
 
   function clamp(value, low, high) {
     return value < low ? low : (value > high ? high : value);
